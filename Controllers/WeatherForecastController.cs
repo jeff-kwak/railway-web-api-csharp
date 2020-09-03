@@ -22,6 +22,8 @@ namespace WeatherApi.Controllers
     private const int MaxAllowedTemperature = 55;
     private WeatherForecast CalculateWeatherForecastForTemperature(int tempC)
     {
+      if(tempC > MaxAllowedTemperature) return $"The temperature {tempC}C is too high to calculate a weather forecast. The max allowed temperature is {MaxAllowedTemperature}C";
+      
       var summary = Summaries[Interpolate((MinAllowedTemperature, 0), (MaxAllowedTemperature, Summaries.Length - 1), tempC)];
       return new WeatherForecast
       {
