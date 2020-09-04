@@ -11,33 +11,12 @@ namespace WeatherApi.Controllers
   [Route("[controller]")]
   public class WeatherForecastController : ControllerBase
   {
-    private static readonly string[] Summaries = new[]
-    {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-    private static int Interpolate((int x, int y) p0, (int x, int y) p1, int x) => (p0.y * (p1.x - x) + p1.y * (x - p0.x)) / (p1.x - p0.x);
-
-    private const int MinAllowedTemperature = -20;
-    private const int MaxAllowedTemperature = 55;
-    private Either<WeatherForecastError, WeatherForecast> CalculateWeatherForecastForTemperature(int tempC)
-    {
-      if (tempC > MaxAllowedTemperature) return new TemperatureTooHigh(tempC, MaxAllowedTemperature);
-      if (tempC < MinAllowedTemperature) return new TemperatureTooLow(tempC, MinAllowedTemperature);
-
-      var summary = Summaries[Interpolate((MinAllowedTemperature, 0), (MaxAllowedTemperature, Summaries.Length - 1), tempC)];
-      return new WeatherForecast
-      {
-        Date = DateTime.Now,
-        Summary = summary,
-        TemperatureC = tempC
-      };
-    }
-
+    private readonly IWeatherForecastService weatherService;
     private readonly ILogger<WeatherForecastController> _logger;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
+    public WeatherForecastController(IWeatherForecastService weatherService, ILogger<WeatherForecastController> logger)
     {
+      this.weatherService = weatherService;
       _logger = logger;
     }
 
@@ -46,7 +25,7 @@ namespace WeatherApi.Controllers
     {
       var rng = new Random();
       return Enumerable.Range(1, 5)
-        .Select(_ => CalculateWeatherForecastForTemperature(rng.Next(MinAllowedTemperature, MaxAllowedTemperature)))
+        .Select(_ => weatherService.CalculateWeatherForecastForTemperature(rng.Next(weatherService.MinAllowedTemperature, weatherService.MaxAllowedTemperature)))
         .Select(either => either.Match<WeatherForecast>(error => null, forecast => forecast))
         .Where(forecast => forecast != null)
         .Select((forecast, index) => new WeatherForecast { Date = forecast.Date.AddDays(index), TemperatureC = forecast.TemperatureC, Summary = forecast.Summary })
@@ -56,7 +35,7 @@ namespace WeatherApi.Controllers
     [HttpGet("{tempC}")]
     public ActionResult<WeatherForecast> GetWeatherForecastByTemperature(int tempC)
     {
-      return CalculateWeatherForecastForTemperature(tempC)
+      return weatherService.CalculateWeatherForecastForTemperature(tempC)
         .Match<ActionResult<WeatherForecast>>(
           error => error switch
           {

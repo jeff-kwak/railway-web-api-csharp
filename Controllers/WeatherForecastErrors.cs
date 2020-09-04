@@ -1,4 +1,4 @@
-﻿namespace WeatherApi.Controllers
+﻿namespace WeatherApi
 {
   public class WeatherForecastError
   {

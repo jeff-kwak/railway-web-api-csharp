@@ -1,6 +1,6 @@
 using System;
 
-namespace WeatherApi.Controllers
+namespace WeatherApi
 {
   public sealed class Either<L, R>
   {
