@@ -23,6 +23,7 @@ namespace WeatherApi.Controllers
     private Either<WeatherForecastError, WeatherForecast> CalculateWeatherForecastForTemperature(int tempC)
     {
       if (tempC > MaxAllowedTemperature) return new TemperatureTooHigh(tempC, MaxAllowedTemperature);
+      if (tempC < MinAllowedTemperature) return new TemperatureTooLow(tempC, MinAllowedTemperature);
 
       var summary = Summaries[Interpolate((MinAllowedTemperature, 0), (MaxAllowedTemperature, Summaries.Length - 1), tempC)];
       return new WeatherForecast
@@ -54,9 +55,18 @@ namespace WeatherApi.Controllers
     }
 
     [HttpGet("{tempC}")]
-    public WeatherForecast GetWeatherForecastByTemperature(int tempC)
+    public ActionResult<WeatherForecast> GetWeatherForecastByTemperature(int tempC)
     {
-      return CalculateWeatherForecastForTemperature(tempC);
+      return CalculateWeatherForecastForTemperature(tempC)
+        .Match<ActionResult<WeatherForecast>>(
+          error => error switch
+          {
+            TemperatureTooHigh tooHigh => BadRequest(tooHigh),
+            TemperatureTooLow tooLow => BadRequest(tooLow),
+            _ => Problem($"Unknown error trying to caculate a weather forecast for {tempC}C")
+          },
+          forecast => forecast
+        );
     }
   }
 }
