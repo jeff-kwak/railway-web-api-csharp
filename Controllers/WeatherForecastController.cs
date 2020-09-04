@@ -45,12 +45,11 @@ namespace WeatherApi.Controllers
     public IEnumerable<WeatherForecast> Get()
     {
       var rng = new Random();
-      return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-      {
-        Date = DateTime.Now.AddDays(index),
-        TemperatureC = rng.Next(-20, 55),
-        Summary = Summaries[rng.Next(Summaries.Length)]
-      })
+      return Enumerable.Range(1, 5)
+        .Select(_ => CalculateWeatherForecastForTemperature(rng.Next(MinAllowedTemperature, MaxAllowedTemperature)))
+        .Select(either => either.Match<WeatherForecast>(error => null, forecast => forecast))
+        .Where(forecast => forecast != null)
+        .Select((forecast, index) => new WeatherForecast { Date = forecast.Date.AddDays(index), TemperatureC = forecast.TemperatureC, Summary = forecast.Summary })
       .ToArray();
     }
 
